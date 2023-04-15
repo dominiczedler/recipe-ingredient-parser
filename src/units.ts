@@ -191,7 +191,77 @@ export const itaNameToSymbol = {
 
 export const itaPreposition = ['di', 'd\''];
 
+export const deuUnits = {
+  tüte: ['beutel', 'tüte'],
+  box: ['box', 'schachtel'],
+  dose: ['dose', 'büchse', 'konserve', 'konservendose'],
+  tasse: ['tasse'],
+  gallone: ['gallone'],
+  unze: ['unze', 'oz', 'oz.'],
+  pint: ['pint', 'pt', 'pts', 'pt.'],
+  pfund: ['pfund', 'lb', 'lb.', 'lbs', 'lbs.', 'Lb', 'Lbs'],
+  quart: ['quart', 'qt', 'qt.', 'qts', 'qts.'],
+  esslöffel: ['el', 'el.', 'EL', 'EL.', 'esslöffel'],
+  teelöffel: ['TL', 'TL.', 'tl', 'tl.', 'teelöffel'],
+  gramm: ['gramm', 'g', 'g.', 'G'],
+  kilogramm: ['kilogramm', 'kg', 'kg.', 'Kg', 'Kg.', 'KG'],
+  liter: ['liter', 'l', 'l.', 'lt', 'Lt', 'LT', 'L', 'L.'],
+  milligramm: ['milligramm', 'mg', 'mg.'],
+  milliliter: ['milliliter', 'ml', 'ml.', 'mL', 'mL.', 'ML'],
+  packung: ['packung', 'pack', 'pk', 'pck', 'päckchen'],
+  stange: ['stange'],
+  stück: ['stück', 'stk', 'stk.'],
+  prise: ['prise', 'priese'],
+  messerspitze: ['messerspitze'],
+  scheibe: ['scheibe'],
+  klein: ['klein', 'kleine', 'kleines'],
+  mittel: ['Medium', 'mittelgroße', 'mittlere', 'mittel', 'mittelgroß', 'mittelgroßes', 'mittleres'],
+  groß: ['groß', 'großes', 'große'],
+} as { [key: string]: string[] };
+
+export const deuPluralUnits = {
+  tasse: 'tassen',
+  gallone: 'gallonen',
+  unze: 'Unzen',
+  pint: 'pints',
+  pfund: 'Pfund',
+  quart: 'quarts',
+  tüte: 'tüten',
+  box: 'Schachteln',
+  prise: 'Prisen',
+  dose: 'dosen',
+  stange: 'stangen',
+  scheibe: 'scheiben',
+  stück: 'stücke'
+} as { [key: string]: string };
+
+export const deuNameToSymbol = {
+  cup: 'c',
+  gallon: 'gal',
+  ounce: 'oz',
+  pint: 'pt',
+  pound: 'lb',
+  quart: 'qt',
+  tablespoon: 'tbs',
+  teaspoon: 'tsp',
+  gram: 'g',
+  kilogram: 'kg',
+  liter: 'lt',
+  milligram: 'mg',
+  milliliter: 'ml',
+  clove: '',
+  bag: '',
+  box: '',
+  pinch: '',
+  can: '',
+  slice: '',
+  piece: ''
+} as { [key: string]: string };
+
+export const deuPreposition = [''];
+
 export const unitsMap = new Map();
 unitsMap.set("eng", [engUnits, engPluralUnits, engPreposition, engNameToSymbol]);
 unitsMap.set("ita", [itaUnits, itaPluralUnits, itaPreposition, itaNameToSymbol]);
+unitsMap.set("deu", [deuUnits, deuPluralUnits, deuPreposition, deuNameToSymbol]);
 

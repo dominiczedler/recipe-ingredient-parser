@@ -56,11 +56,11 @@ function getUnit(input: string, language: string) {
   else {
     if (units[input] || pluralUnits[input]) {
 
-      response = [input, pluralUnits[input], input];
+      response = [input, pluralUnits[input], input, null];
     }
     for (const unit of Object.keys(units)) {
       for (const shorthand of units[unit]) {
-        const regex = new RegExp('(?=\\b' + shorthand + '\\b)', 'gi')
+        const regex = new RegExp('(?=\\b' + shorthand + '\\b)', 'gi');
         if (input.match(regex)) {
           response = [unit, pluralUnits[unit], shorthand];
         }
@@ -102,18 +102,20 @@ export function parse(recipeString: string, language: string) {
   quantity = convert.convertFromFraction(quantity);
   /* extraInfo will be any info in parantheses. We'll place it at the end of the ingredient.
   For example: "sugar (or other sweetener)" --> extraInfo: "(or other sweetener)" */
-  let extraInfo;
-  if (convert.getFirstMatch(restOfIngredient, /\(([^\)]+)\)/)) {
-    extraInfo = convert.getFirstMatch(restOfIngredient, /\(([^\)]+)\)/);
+  let extraInfo = convert.getFirstMatch(restOfIngredient, / \(([^\)]+)\)/);
+  if (extraInfo) {
     restOfIngredient = restOfIngredient.replace(extraInfo, '').trim();
   }
   // grab unit and turn it into non-plural version, for ex: "Tablespoons" OR "Tsbp." --> "tablespoon"
   let [unit, unitPlural, symbol, originalUnit] = getUnit(restOfIngredient, language) as string[]
   // remove unit from the ingredient if one was found and trim leading and trailing whitespace
+
   let regex_originalunit = RegExp('\\b' + originalUnit + '\\b', 'gi')
   let regex_unit = RegExp('\\b' + unit + '\\b', 'gi')
 
-  let ingredient = !!originalUnit ? restOfIngredient.replace(regex_originalunit, '').trim() : restOfIngredient.replace(regex_unit, '').trim();
+  let ingredient = !!originalUnit
+    ? restOfIngredient.replace(regex_originalunit, '').trim()
+    : restOfIngredient.replace(regex_unit, '').trim();
   ingredient = ingredient.split('.').join("").trim()
   let preposition = getPreposition(ingredient.split(' ')[0], language)
 
