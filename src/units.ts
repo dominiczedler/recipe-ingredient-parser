@@ -264,4 +264,3 @@ export const unitsMap = new Map();
 unitsMap.set("eng", [engUnits, engPluralUnits, engPreposition, engNameToSymbol]);
 unitsMap.set("ita", [itaUnits, itaPluralUnits, itaPreposition, itaNameToSymbol]);
 unitsMap.set("deu", [deuUnits, deuPluralUnits, deuPreposition, deuNameToSymbol]);
-

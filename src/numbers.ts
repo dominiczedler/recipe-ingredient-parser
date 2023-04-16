@@ -143,4 +143,3 @@ export const  numbersMap = new Map();
 numbersMap.set("eng",[engSmall,  engMagnitude]);
 numbersMap.set("ita",[itaSmall,  itaMagnitude]);
 numbersMap.set("deu",[deuSmall,  deuMagnitude]);
-
