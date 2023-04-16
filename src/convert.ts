@@ -110,21 +110,17 @@ export function findQuantityAndConvertIfUnicode(ingredientLine: string, language
     const quantity = getFirstMatch(ingredientLine, numericAndFractionRegex);
     const restOfIngredient = ingredientLine.replace(getFirstMatch(ingredientLine, numericAndFractionRegex), '').trim()
     return [ingredientLine.match(numericAndFractionRegex) && quantity, restOfIngredient];
-  }
-  else if (ingredientLine.match(wordUntilSpace)) {
+  } else if (ingredientLine.match(wordUntilSpace)) {
     const quantity = getFirstMatch(ingredientLine, wordUntilSpace);
-    const quantityNumber = text2num(quantity.toLowerCase(), language)
+    const quantityNumber = text2num(quantity.toLowerCase(), language);
     if (quantityNumber) {
       const restOfIngredient = ingredientLine.replace(getFirstMatch(ingredientLine, wordUntilSpace), '').trim()
       return [ingredientLine.match(wordUntilSpace) && quantityNumber + '', restOfIngredient];
-    }
-    else
+    } else {
       return [null, ingredientLine];
-
-  }
-
-  // no parse-able quantity found
-  else {
+    }
+  } else {
+    // no parse-able quantity found
     return [null, ingredientLine];
   }
 }
