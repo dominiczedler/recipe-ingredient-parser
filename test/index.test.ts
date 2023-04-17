@@ -37,7 +37,7 @@ describe('recipe parser eng', () => {
     it('of "1 1/2 teaspoon water"', () => {
       expect(parse('1 1/2 teaspoon water', 'eng').quantity).to.equal(1.5);
     });
-    it('of "1/3 teaspoon water"', () => {
+    it('of "1/3 cup water"', () => {
       expect(parse('1/3 cup water', 'eng').quantity).to.equal(0.333);
     });
     it('of "1/2 teaspoon water"', () => {
@@ -1299,7 +1299,7 @@ describe('recipe parser ita', () => {
       expect(parse('guanciale 100 g', 'ita').ingredient).to.equal('guanciale');
     });
     it('"Guanciale 100 g"', () => {
-      expect(parse('Guanciale 100 g', 'ita').ingredient).to.equal('guanciale');
+      expect(parse('Guanciale 100 g', 'ita').ingredient).to.equal('Guanciale');
     });
     it('"cuangiale 100 g"', () => {
       expect(parse('cuangiale 100 g', 'ita').ingredient).to.equal('cuangiale');

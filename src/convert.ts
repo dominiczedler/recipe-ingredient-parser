@@ -88,13 +88,19 @@ export function findQuantityAndConvertIfUnicode(ingredientLine: string, language
   const wordUntilSpace = /[^\s]+/g;
 
   // found a unicode quantity inside our regex, for ex: '⅝'
-  if (ingredientLine.match(unicodeFractionRegex)) {
+  const regexMatchUnicode = unicodeFractionRegex.exec(ingredientLine);
+  if (regexMatchUnicode !== null) {
     const numericPart = getFirstMatch(ingredientLine, numericAndFractionRegex);
     const unicodePart = getFirstMatch(ingredientLine, numericPart ? onlyUnicodeFraction : unicodeFractionRegex);
 
     // If there's a match for the unicodePart in our dictionary above
     if (unicodeObj[unicodePart]) {
-      return [`${numericPart} ${unicodeObj[unicodePart]}`, ingredientLine.replace(getFirstMatch(ingredientLine, unicodeFractionRegex), '').trim()];
+      return [
+        `${numericPart} ${unicodeObj[unicodePart]}`,
+        regexMatchUnicode.index,
+        regexMatchUnicode.index + regexMatchUnicode[0].length,
+        ingredientLine.replace(getFirstMatch(ingredientLine, unicodeFractionRegex), '').trim()
+      ];
     }
   }
 
@@ -106,22 +112,34 @@ export function findQuantityAndConvertIfUnicode(ingredientLine: string, language
   // }
 
   // found a numeric/fraction quantity, for example: "1 1/3"
-  if (ingredientLine.match(numericAndFractionRegex)) {
+  const regexMatchNumericFraction = numericAndFractionRegex.exec(ingredientLine);
+  const regexMatchWordUntilSpace = wordUntilSpace.exec(ingredientLine);
+  if (regexMatchNumericFraction !== null) {
     const quantity = getFirstMatch(ingredientLine, numericAndFractionRegex);
     const restOfIngredient = ingredientLine.replace(getFirstMatch(ingredientLine, numericAndFractionRegex), '').trim()
-    return [ingredientLine.match(numericAndFractionRegex) && quantity, restOfIngredient];
-  } else if (ingredientLine.match(wordUntilSpace)) {
+    return [
+      ingredientLine.match(numericAndFractionRegex) && quantity,
+      regexMatchNumericFraction.index,
+      regexMatchNumericFraction.index + regexMatchNumericFraction[0].length,
+      restOfIngredient
+    ];
+  } else if (regexMatchWordUntilSpace !== null) {
     const quantity = getFirstMatch(ingredientLine, wordUntilSpace);
     const quantityNumber = text2num(quantity.toLowerCase(), language);
     if (quantityNumber) {
       const restOfIngredient = ingredientLine.replace(getFirstMatch(ingredientLine, wordUntilSpace), '').trim()
-      return [ingredientLine.match(wordUntilSpace) && quantityNumber + '', restOfIngredient];
+      return [
+        ingredientLine.match(wordUntilSpace) && quantityNumber + '',
+        regexMatchWordUntilSpace.index,
+        regexMatchWordUntilSpace.index + regexMatchWordUntilSpace[0].length,
+        restOfIngredient
+      ];
     } else {
-      return [null, ingredientLine];
+      return [null, 0, 0, ingredientLine];
     }
   } else {
     // no parse-able quantity found
-    return [null, ingredientLine];
+    return [null, 0, 0, ingredientLine];
   }
 }
 

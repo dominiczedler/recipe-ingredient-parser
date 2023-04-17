@@ -59,6 +59,8 @@ function getUnit(input: string, language: string) {
     let suffixRegex: string = '';
     if (language === 'deu') {
       suffixRegex = '(\\(n\\))?';
+    } else if (language === 'eng') {
+      suffixRegex = '(\\(s\\))?';
     }
     for (const quantityUnit of Object.keys(units)) {
       for (const shorthand of units[quantityUnit]) {
@@ -93,17 +95,30 @@ function getPreposition(input: string, language: string) {
     if (convert.getFirstMatch(input, regex)) {
       return preposition;
     }
-
   }
-
   return null;
 }
 
-export function parse(recipeString: string, language: string) {
-  const ingredientLine = recipeString.trim().replace(/^(-)/, ''); // removes leading and trailing whitespace
+export function parse(
+  ingredientLine: string,
+  language: string
+) {
+  return parseExact(ingredientLine, language, false);
+}
+
+export function parseExact(
+  ingredientLine: string,
+  language: string,
+  withPositions?: boolean
+) {
+  if (!withPositions) {
+    // removes leading and trailing whitespace
+    ingredientLine = ingredientLine.trim().replace(/^(-)/, '');
+  }
   /* restOfIngredient represents rest of ingredient line.
   For example: "1 pinch salt" --> quantity: 1, restOfIngredient: pinch salt */
-  let [quantity, restOfIngredient] = convert.findQuantityAndConvertIfUnicode(ingredientLine, language) as string[];
+  let [quantity, quantityStart, quantityEnd, restOfIngredient]
+    = convert.findQuantityAndConvertIfUnicode(ingredientLine, language) as string[];
   quantity = convert.convertFromFraction(quantity);
   /* extraInfo will be any info in parentheses. We'll place it at the end of the ingredient.
   For example: "sugar (or other sweetener)" --> extraInfo: "(or other sweetener)" */
@@ -149,7 +164,9 @@ export function parse(recipeString: string, language: string) {
   return {
     text: ingredientLine,
     quantity: {
-      parsed: +quantity
+      parsed: +quantity,
+      start: quantityStart,
+      end: quantityEnd
     },
     unit: {
       parsed: !!unit ? unit : null,
