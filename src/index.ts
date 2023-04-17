@@ -37,24 +37,24 @@ export function toTasteRecognize(input: string, language: string) {
   return ['', '', false] as [string, string, boolean];
 }
 
-function getUnit(input: string, language: string) {
+function getUnit(input: string, language: string): [string, string, string, number, number] {
   // const word = input.concat(' ').concat(secondWord)
   const unit = unitsMap.get(language);
   const units = unit[0];
   const pluralUnits = unit[1];
   const symbolUnits = unit[3];
-  let response = [] as string[];
+  let response: [string, string, string, number, number] = ["", "", "", 0, 0] ;
   const [toTaste, match, extFlag] = toTasteRecognize(input, language);
   if (toTaste) {
     if (extFlag) {
-      response = [toTaste, toTaste, match];
+      response = [toTaste, toTaste, match, 0, 0];
     } else {
-      response = [toTaste, toTaste, match];
+      response = [toTaste, toTaste, match, 0, 0];
     }
   } else {
     if (units[input] || pluralUnits[input]) {
 
-      response = [input, pluralUnits[input], input, null];
+      response = [input, pluralUnits[input], input, 0, 0];
     }
     let suffixRegex: string = '';
     if (language === 'deu') {
@@ -103,45 +103,74 @@ export function parse(
   ingredientLine: string,
   language: string
 ) {
-  return parseExact(ingredientLine, language, false);
-}
+  let remainingIndexStart = 0;
+  let remainingIndexEnd = ingredientLine.length - 1;
 
-export function parseExact(
-  ingredientLine: string,
-  language: string,
-  withPositions?: boolean
-) {
-  if (!withPositions) {
-    // removes leading and trailing whitespace
-    ingredientLine = ingredientLine.trim().replace(/^(-)/, '');
-  }
+  [remainingIndexStart, remainingIndexEnd] = skipWhitespaces(ingredientLine, remainingIndexStart, remainingIndexEnd);
+
   /* restOfIngredient represents rest of ingredient line.
   For example: "1 pinch salt" --> quantity: 1, restOfIngredient: pinch salt */
-  let [quantity, quantityStart, quantityEnd, restOfIngredient]
-    = convert.findQuantityAndConvertIfUnicode(ingredientLine, language) as string[];
+  let [quantity, quantityStart, quantityEnd]
+    = convert.findQuantityAndConvertIfUnicode(ingredientLine, language);
+
+  if (quantity == null) quantity = "";
   quantity = convert.convertFromFraction(quantity);
+
+  if (remainingIndexStart == quantityStart) {
+    remainingIndexStart = quantityEnd;
+  } else {
+    remainingIndexEnd = quantityStart;
+  }
+
+  [remainingIndexStart, remainingIndexEnd] = skipWhitespaces(ingredientLine, remainingIndexStart, remainingIndexEnd);
+
   /* extraInfo will be any info in parentheses. We'll place it at the end of the ingredient.
   For example: "sugar (or other sweetener)" --> extraInfo: "(or other sweetener)" */
-  const extraInfo = convert.getFirstMatch(restOfIngredient, / \(([^\)]+)\)/);
-  if (extraInfo) {
-    restOfIngredient = restOfIngredient.replace(extraInfo, '').trim();
+  const regexMatchExtraInfo = / \(([^\)]+)\)/.exec(getSubstring(ingredientLine, remainingIndexStart, remainingIndexEnd));
+  const extraInfoStart = regexMatchExtraInfo != null
+    ? remainingIndexStart + regexMatchExtraInfo.index
+    : 0;
+  const extraInfoEnd = regexMatchExtraInfo != null
+    ? remainingIndexStart + regexMatchExtraInfo.index + regexMatchExtraInfo[0].length
+    : 0;
+  if (remainingIndexStart == extraInfoStart) {
+    remainingIndexStart = extraInfoEnd;
+  } else {
+    remainingIndexEnd = extraInfoStart;
   }
+  if (regexMatchExtraInfo != null) {
+    //restOfIngredient = restOfIngredient.replace(extraInfo, '').trim();
+  }
+
+  [remainingIndexStart, remainingIndexEnd] = skipWhitespaces(ingredientLine, remainingIndexStart, remainingIndexEnd);
+
   // grab unit and turn it into non-plural version, for ex: "Tablespoons" OR "Tsbp." --> "tablespoon"
-  const unitResult = getUnit(restOfIngredient, language) as string[];
+  const unitResult = getUnit(getSubstring(ingredientLine, remainingIndexStart, remainingIndexEnd), language);
   let unit = unitResult[0];
   let unitPlural = unitResult[1];
   const symbol = unitResult[2];
-  const originalUnit = unitResult[3];
-  const unitStart = unitResult[4];
-  const unitEnd = unitResult[5];
+  let unitStart: number = 0;
+  let unitEnd: number = 0;
+
+  if (unitResult[4] != 0) {
+    unitStart = remainingIndexStart + unitResult[3];
+    unitEnd = remainingIndexStart + unitResult[4];
+  }
+
+  if (remainingIndexStart == unitStart) {
+    remainingIndexStart = unitEnd;
+  } else {
+    remainingIndexEnd = unitStart;
+  }
+
   // remove unit from the ingredient if one was found and trim leading and trailing whitespace
+  //const regex_originalunit = RegExp('\\b' + getSubstring(ingredientLine, unitStart, unitEnd) + '\\b', 'gi');
+  //const regex_unit = RegExp('\\b' + unit + '\\b', 'gi');
 
-  const regex_originalunit = RegExp('\\b' + originalUnit + '\\b', 'gi');
-  const regex_unit = RegExp('\\b' + unit + '\\b', 'gi');
-
-  let ingredient = !!originalUnit
-    ? restOfIngredient.replace(regex_originalunit, '').trim()
-    : restOfIngredient.replace(regex_unit, '').trim();
+  let ingredient = getSubstring(ingredientLine, unitStart, unitEnd);
+  //let ingredient = !!getSubstring(ingredientLine, unitStart, unitEnd)
+  //  ? restOfIngredient.replace(regex_originalunit, '').trim()
+  //  : restOfIngredient.replace(regex_unit, '').trim();
   ingredient = ingredient.split('.').join('').trim();
   const preposition = getPreposition(ingredient.split(' ')[0], language);
 
@@ -175,7 +204,12 @@ export function parseExact(
       plural: !!unitPlural ? unitPlural : null,
       symbol: !!symbol ? symbol : null
     },
-    ingredient: extraInfo ? `${ingredient} ${extraInfo}` : ingredient.replace(/( )*\.( )*/g, ''),
+    ingredient: ingredient.replace(/( )*.( )*/g, ''),
+    extraInfo: regexMatchExtraInfo != null ? {
+      parsed: regexMatchExtraInfo[0],
+      start: extraInfoStart,
+      end: extraInfoEnd
+    } : null,
     minQty: +minQty,
     maxQty: +maxQty,
   };
@@ -207,6 +241,20 @@ export function multiLineParse(recipeString: string, language: string) {
     }
   }
   return result;
+}
+
+export function skipWhitespaces(input: string, startIndex: number, endIndex: number) {
+  while (startIndex < input.length && input.charAt(startIndex) === " ") {
+    startIndex++;
+  }
+  while (endIndex >= 0 && endIndex > startIndex && input.charAt(endIndex) === " ") {
+    endIndex--;
+  }
+  return [startIndex, endIndex];
+}
+
+export function getSubstring(input: string, startIndex: number, endIndex: number) {
+  return input.substring(startIndex, endIndex);
 }
 
 export function combine(ingredientArray: Ingredient[]) {

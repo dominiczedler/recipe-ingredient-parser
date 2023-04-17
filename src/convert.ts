@@ -80,7 +80,7 @@ export function feach(w: string, g: number, n: number, language: string) {
   return [g, n]
 }
 
-export function findQuantityAndConvertIfUnicode(ingredientLine: string, language: string) {
+export function findQuantityAndConvertIfUnicode(ingredientLine: string, language: string): [(string|null), number, number] {
   const numericAndFractionRegex = /^(\d+\/\d+)|(\d+\s\d+\/\d+)|(\d+.\d+)|\d+/g;
   //const numericRangeWithSpaceRegex = /^(\d+\-\d+)|^(\d+\s\-\s\d+)|^(\d+\sto\s\d+)/g; // for ex: "1 to 2" or "1 - 2"
   const unicodeFractionRegex = /\d*[^\u0000-\u007F]+/g;
@@ -98,8 +98,7 @@ export function findQuantityAndConvertIfUnicode(ingredientLine: string, language
       return [
         `${numericPart} ${unicodeObj[unicodePart]}`,
         regexMatchUnicode.index,
-        regexMatchUnicode.index + regexMatchUnicode[0].length,
-        ingredientLine.replace(getFirstMatch(ingredientLine, unicodeFractionRegex), '').trim()
+        regexMatchUnicode.index + regexMatchUnicode[0].length
       ];
     }
   }
@@ -116,30 +115,26 @@ export function findQuantityAndConvertIfUnicode(ingredientLine: string, language
   const regexMatchWordUntilSpace = wordUntilSpace.exec(ingredientLine);
   if (regexMatchNumericFraction !== null) {
     const quantity = getFirstMatch(ingredientLine, numericAndFractionRegex);
-    const restOfIngredient = ingredientLine.replace(getFirstMatch(ingredientLine, numericAndFractionRegex), '').trim()
     return [
       ingredientLine.match(numericAndFractionRegex) && quantity,
       regexMatchNumericFraction.index,
-      regexMatchNumericFraction.index + regexMatchNumericFraction[0].length,
-      restOfIngredient
+      regexMatchNumericFraction.index + regexMatchNumericFraction[0].length
     ];
   } else if (regexMatchWordUntilSpace !== null) {
     const quantity = getFirstMatch(ingredientLine, wordUntilSpace);
     const quantityNumber = text2num(quantity.toLowerCase(), language);
     if (quantityNumber) {
-      const restOfIngredient = ingredientLine.replace(getFirstMatch(ingredientLine, wordUntilSpace), '').trim()
       return [
         ingredientLine.match(wordUntilSpace) && quantityNumber + '',
         regexMatchWordUntilSpace.index,
-        regexMatchWordUntilSpace.index + regexMatchWordUntilSpace[0].length,
-        restOfIngredient
+        regexMatchWordUntilSpace.index + regexMatchWordUntilSpace[0].length
       ];
     } else {
-      return [null, 0, 0, ingredientLine];
+      return [null, 0, 0];
     }
   } else {
     // no parse-able quantity found
-    return [null, 0, 0, ingredientLine];
+    return [null, 0, 0];
   }
 }
 
