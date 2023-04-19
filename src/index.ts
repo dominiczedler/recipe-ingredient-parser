@@ -1,5 +1,5 @@
 import * as convert from './convert';
-import { unitsMap } from './units';
+import { unitsMap, pluralEndingsMap } from './units';
 import { repeatingFractions } from './repeatingFractions';
 import { toTasteMap } from './numbers';
 
@@ -42,7 +42,7 @@ function getUnit(input: string, language: string): [string, string, string, numb
   const unit = unitsMap.get(language);
   const units = unit[0];
   const pluralUnits = unit[1];
-  const symbolUnits = unit[3];
+  //const symbolUnits = unit[3];
   let response: [string, string, string, number, number] = ["", "", "", 0, 0] ;
   const [toTaste, match, extFlag] = toTasteRecognize(input, language);
   if (toTaste) {
@@ -56,15 +56,10 @@ function getUnit(input: string, language: string): [string, string, string, numb
 
       response = [input, pluralUnits[input], input, 0, 0];
     }
-    let suffixRegex: string = '';
-    if (language === 'deu') {
-      suffixRegex = '(\\(n\\))?';
-    } else if (language === 'eng') {
-      suffixRegex = '(\\(s\\))?';
-    }
+    let pluralEndingsRegex = pluralEndingsMap.get(language);
     for (const quantityUnit of Object.keys(units)) {
       for (const shorthand of units[quantityUnit]) {
-        const regex = new RegExp('\\b' + shorthand + '\\b' + suffixRegex, 'gi');
+        const regex = new RegExp('\\b' + escapeRegExp(shorthand) + '\\b' + pluralEndingsRegex, 'gi');
         const regexMatch = regex.exec(input);
         if (regexMatch !== null) {
           response = [quantityUnit, pluralUnits[quantityUnit], shorthand, regexMatch.index, regexMatch.index + regexMatch[0].length];
@@ -72,17 +67,21 @@ function getUnit(input: string, language: string): [string, string, string, numb
       }
     }
     for (const pluralUnit of Object.keys(pluralUnits)) {
-      const regex = new RegExp('\\b' + pluralUnits[pluralUnit] + '\\b'  + suffixRegex, 'gi');
+      const regex = new RegExp('\\b' + escapeRegExp(pluralUnits[pluralUnit]) + '\\b'  + pluralEndingsRegex, 'gi');
       const regexMatch = regex.exec(input);
       if (regexMatch !== null) {
         response = [pluralUnit, pluralUnits[pluralUnit], pluralUnits[pluralUnit], regexMatch.index, regexMatch.index + regexMatch[0].length];
       }
     }
   }
-  const symbol = symbolUnits[response[0]];
-  response.splice(2, 0, symbol);
+  //const symbol = symbolUnits[response[0]];
+  //response.splice(2, 0, symbol);
 
   return response;
+}
+
+function escapeRegExp(string: any) {
+  return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); // $& means the whole matched string
 }
 
 /* return the proposition if it's used before of the name of
@@ -127,18 +126,20 @@ export function parse(
   /* extraInfo will be any info in parentheses. We'll place it at the end of the ingredient.
   For example: "sugar (or other sweetener)" --> extraInfo: "(or other sweetener)" */
   const regexMatchExtraInfo = / \(([^\)]+)\)/.exec(getSubstring(ingredientLine, remainingIndexStart, remainingIndexEnd));
-  const extraInfoStart = regexMatchExtraInfo != null
+  const extraInfo = regexMatchExtraInfo != null ? regexMatchExtraInfo[0].trimStart() : null;
+  let extraInfoStart = regexMatchExtraInfo != null
     ? remainingIndexStart + regexMatchExtraInfo.index
     : 0;
   const extraInfoEnd = regexMatchExtraInfo != null
-    ? remainingIndexStart + regexMatchExtraInfo.index + regexMatchExtraInfo[0].length
+    ? extraInfoStart + regexMatchExtraInfo[0].length
     : 0;
-  if (remainingIndexStart == extraInfoStart) {
-    remainingIndexStart = extraInfoEnd;
-  } else {
-    remainingIndexEnd = extraInfoStart;
-  }
   if (regexMatchExtraInfo != null) {
+    if (remainingIndexStart == extraInfoStart) {
+      remainingIndexStart = extraInfoEnd;
+    } else {
+      remainingIndexEnd = extraInfoStart;
+    }
+    extraInfoStart++;  // +1 because of whitespace before parentheses
     //restOfIngredient = restOfIngredient.replace(extraInfo, '').trim();
   }
 
@@ -155,29 +156,34 @@ export function parse(
   if (unitResult[4] != 0) {
     unitStart = remainingIndexStart + unitResult[3];
     unitEnd = remainingIndexStart + unitResult[4];
+
+    if (remainingIndexStart == unitStart) {
+      remainingIndexStart = unitEnd;
+    } else {
+      remainingIndexEnd = unitStart;
+    }
   }
 
-  if (remainingIndexStart == unitStart) {
-    remainingIndexStart = unitEnd;
-  } else {
-    remainingIndexEnd = unitStart;
-  }
+  [remainingIndexStart, remainingIndexEnd] = skipWhitespaces(ingredientLine, remainingIndexStart, remainingIndexEnd);
 
   // remove unit from the ingredient if one was found and trim leading and trailing whitespace
   //const regex_originalunit = RegExp('\\b' + getSubstring(ingredientLine, unitStart, unitEnd) + '\\b', 'gi');
   //const regex_unit = RegExp('\\b' + unit + '\\b', 'gi');
 
-  let ingredient = getSubstring(ingredientLine, unitStart, unitEnd);
+  let ingredient = getSubstring(ingredientLine, remainingIndexStart, remainingIndexEnd);
+  ingredient = ingredient.split('.').join('').trim();
   //let ingredient = !!getSubstring(ingredientLine, unitStart, unitEnd)
   //  ? restOfIngredient.replace(regex_originalunit, '').trim()
   //  : restOfIngredient.replace(regex_unit, '').trim();
-  ingredient = ingredient.split('.').join('').trim();
-  const preposition = getPreposition(ingredient.split(' ')[0], language);
 
+  const preposition = getPreposition(ingredient.split(' ')[0], language);
   if (preposition) {
     const regex = new RegExp('^' + preposition);
     ingredient = ingredient.replace(regex, '').trim();
   }
+
+  const pluralEndingsRegex = pluralEndingsMap.get(language);
+  let ingredientTruncated = ingredient.replace(pluralEndingsRegex, '').trim();
 
   let minQty = quantity; // default to quantity
   let maxQty = quantity; // default to quantity
@@ -192,21 +198,26 @@ export function parse(
   }
   return {
     text: ingredientLine,
-    quantity: {
+    quantity: !!quantity ? {
       parsed: +quantity,
       start: quantityStart,
       end: quantityEnd
-    },
-    unit: {
+    } : null,
+    unit: !!unit ? {
       parsed: !!unit ? unit : null,
       start: unitStart,
       end: unitEnd,
       plural: !!unitPlural ? unitPlural : null,
       symbol: !!symbol ? symbol : null
-    },
-    ingredient: ingredient.replace(/( )*.( )*/g, ''),
+    } : null,
+    product: !!ingredient ? {
+      parsed: ingredient,
+      truncated: ingredientTruncated,
+      start: remainingIndexStart,
+      end: remainingIndexEnd+1
+    } : null,
     extraInfo: regexMatchExtraInfo != null ? {
-      parsed: regexMatchExtraInfo[0],
+      parsed: extraInfo,
       start: extraInfoStart,
       end: extraInfoEnd
     } : null,
@@ -236,7 +247,7 @@ export function multiLineParse(recipeString: string, language: string) {
   let i;
   for (const ingredient of ingredients) {
     i = parse(ingredient, language);
-    if (i.ingredient) {
+    if (i.product) {
       result.push(i);
     }
   }
@@ -254,7 +265,7 @@ export function skipWhitespaces(input: string, startIndex: number, endIndex: num
 }
 
 export function getSubstring(input: string, startIndex: number, endIndex: number) {
-  return input.substring(startIndex, endIndex);
+  return input.substring(startIndex, endIndex+1);
 }
 
 export function combine(ingredientArray: Ingredient[]) {

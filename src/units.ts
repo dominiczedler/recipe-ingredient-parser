@@ -72,6 +72,8 @@ export const engNameToSymbol = {
   piece: ''
 } as { [key: string]: string };
 
+export const engPluralEndingsRegex = "(\\(s\\))?";
+
 export const engPreposition = ['of'];
 
 
@@ -189,6 +191,8 @@ export const itaNameToSymbol = {
   millilitro: 'ml',
 } as { [key: string]: string };
 
+export const itaPluralEndingsRegex = "";
+
 export const itaPreposition = ['di', 'd\''];
 
 export const deuUnits = {
@@ -258,9 +262,16 @@ export const deuNameToSymbol = {
   piece: ''
 } as { [key: string]: string };
 
+export const deuPluralEndingsRegex = "(\\(n\\))?";
+
 export const deuPreposition = [''];
 
 export const unitsMap = new Map();
 unitsMap.set("eng", [engUnits, engPluralUnits, engPreposition, engNameToSymbol]);
 unitsMap.set("ita", [itaUnits, itaPluralUnits, itaPreposition, itaNameToSymbol]);
 unitsMap.set("deu", [deuUnits, deuPluralUnits, deuPreposition, deuNameToSymbol]);
+
+export const pluralEndingsMap = new Map();
+pluralEndingsMap.set("eng", engPluralEndingsRegex);
+pluralEndingsMap.set("ita", itaPluralEndingsRegex);
+pluralEndingsMap.set("deu", deuPluralEndingsRegex);
